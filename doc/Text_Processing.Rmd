@@ -1,33 +1,32 @@
 ---
-title: "Stem Completion"
-author: "Arpita Shah and Tian Zheng"
+title: "What Makes Women Happy"
+author: "Tianyi Jiang"
 output:
   html_document:
     df_print: paged
 ---
 
-```{r setup, include=FALSE}
+```{r, warning=FALSE, message=FALSE,echo=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-HappyDB is a corpus of 100,000 crowd-sourced happy moments via Amazon's Mechanical Turk. You can read more about it on https://arxiv.org/abs/1801.07746
+This report is a guidebook with selected Q&A aims at finding out what makes women happy.
 
-In this R notebook, we process the raw textual data for our data analysis.
+The whole dataset: HappyDB is a corpus of 100,000 crowd-sourced happy moments via Amazon's Mechanical Turk. You can read more about it on <https://arxiv.org/abs/1801.07746>. But I only use a subset of this dataset to conduct data analysis in this report.
 
 ### Step 0 - Load all the required libraries
 
-From the packages' descriptions:
-
-+ `tm` is a framework for text mining applications within R;
-+ `tidyverse` is an opinionated collection of R packages designed for data science. All packages share an underlying design philosophy, grammar, and data structures;
-+ `tidytext` allows text mining using 'dplyr', 'ggplot2', and other tidy tools;
-+ `DT` provides an R interface to the JavaScript library DataTables.
-
 ```{r load libraries, warning=FALSE, message=FALSE}
-library(tm)
-library(tidytext)
 library(tidyverse)
+library(tidytext)
 library(DT)
+library(scales)
+library(wordcloud)
+library(gridExtra)
+library(ngram)
+library(shiny) 
+library(tm)
+
 ```
 
 ### Step 1 - Load the data to be cleaned and processed
@@ -37,9 +36,7 @@ urlfile<-'https://raw.githubusercontent.com/rit-public/HappyDB/master/happydb/da
 hm_data <- read_csv(urlfile)
 ```
 
-### Step 2 - Preliminary cleaning of text
-
-We clean the text by converting all the letters to the lower case, and removing punctuation, numbers, empty words and extra white space.
+### Step 2 - Initial Text Data Cleaning
 
 ```{r text processing in tm}
 corpus <- VCorpus(VectorSource(hm_data$cleaned_hm))%>%
@@ -50,9 +47,7 @@ corpus <- VCorpus(VectorSource(hm_data$cleaned_hm))%>%
   tm_map(stripWhitespace)
 ```
 
-### Step 3 - Stemming words and converting tm object to tidy object
-
-Stemming reduces a word to its word *stem*. We stem the words here and then convert the "tm" object to a "tidy" object for much faster processing.
+### Step 3 - Applying stemming to words and transforming a text mining (tm) object into a tidy data object
 
 ```{r stemming}
 stemmed <- tm_map(corpus, stemDocument) %>%
@@ -60,9 +55,7 @@ stemmed <- tm_map(corpus, stemDocument) %>%
   select(text)
 ```
 
-### Step 4 - Creating tidy format of the dictionary to be used for completing stems
-
-We also need a dictionary to look up the words corresponding to the stems.
+### Step 4 - Preparing a tidy format of the dictionary for stem completion.
 
 ```{r tidy dictionary}
 dict <- tidy(corpus) %>%
@@ -70,9 +63,7 @@ dict <- tidy(corpus) %>%
   unnest_tokens(dictionary, text)
 ```
 
-### Step 5 - Removing stopwords that don't hold any significant information for our data set
-
-We remove stopwords provided by the "tidytext" package and also add custom stopwords in context of our data.
+### Step 5 - Eliminating stopwords that do not convey valuable information for our dataset
 
 ```{r stopwords}
 data("stop_words")
@@ -84,9 +75,7 @@ stop_words <- stop_words %>%
   bind_rows(mutate(tibble(word), lexicon = "updated"))
 ```
 
-### Step 6 - Combining stems and dictionary into the same tibble
-
-Here we combine the stems and the dictionary into the same "tidy" object.
+### Step 6 - Merge the stem data and dictionary into a single tibble
 
 ```{r tidy stems with dictionary}
 completed <- stemmed %>%
@@ -96,9 +85,7 @@ completed <- stemmed %>%
   anti_join(stop_words, by = c("dictionary" = "word"))
 ```
 
-### Step 7 - Stem completion
-
-Lastly, we complete the stems by picking the corresponding word with the highest frequency.
+### Step 7 - Conclude the stem selection process by choosing the word with the highest frequency associated with each stem
 
 ```{r stem completion, warning=FALSE, message=FALSE}
 completed <- completed %>%
@@ -112,9 +99,7 @@ completed <- completed %>%
   select(-stems)
 ```
 
-### Step 8 - Pasting stem completed individual words into their respective happy moments
-
-We want our processed words to resemble the structure of the original happy moments. So we paste the words together to form happy moments.
+### Step 8 - Combining stemmed individual words with their corresponding happy moments.
 
 ```{r reverse unnest}
 completed <- completed %>%
@@ -133,10 +118,8 @@ hm_data <- hm_data %>%
 datatable(hm_data)
 ```
 
-### Exporting the processed text data into a CSV file
+### Step 10 - Exporting the processed text data into a CSV file
 
 ```{r export data}
 write_csv(hm_data, "../output/processed_moments.csv")
 ```
-
-The final processed data is ready to be used for any kind of analysis.
