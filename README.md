@@ -2,7 +2,7 @@
 
 ## Spring 2024
 
-## Project 1: What made you happy today?
+## Project 1: What Makes Women Happy?
 
 ![image](figs/title.jpeg)
 
